@@ -1,5 +1,5 @@
 use scrypto::prelude::*;
-// A proposal that unlocks funds.
+// A proposal that unlocks funds if accepted.
 blueprint! {
 struct Proposal{
             // Fund which are looked for the vote
@@ -64,9 +64,10 @@ struct Proposal{
                 }
 
                 pub fn retrive_voting_tokens(&mut self, replacement_tokens: Bucket) -> Bucket {
-                    //TODO burn replacement tokes instead of putting them back
                     let amount = replacement_tokens.amount();
-                    self.replacement_tokens_type_yes.put(replacement_tokens);
+                    if self.replacement_tokens_type_yes.resource_def() == replacement_tokens.resource_def() {
+                        self.yes_counter = self.yes_counter - replacement_tokens.amount();
+                    } else { self.no_counter = self.no_counter - replacement_tokens.amount();}
                     // send shares from vault
                     self.company_voting_token.take(amount)
 
@@ -89,20 +90,18 @@ struct Proposal{
                 /// Checks if a finish condition is reached
                pub fn try_solve(&mut self){
                    if self.yes_counter > self.needed_votes {
-                    let acc = Account::from(self.destination_adress_funds);
-                    acc.deposit(self.cost_vault.take_all());
+                    Account::from(self.destination_adress_funds).deposit(self.cost_vault.take_all());
                    }
                    if self.no_counter > self.needed_votes {
-                    //ToDo send tokens to initial address
+                    Account::from(self.fund_owner_adress).deposit(self.cost_vault.take_all());
                    }
                    if Context::current_epoch() > self.end_epoch {
-                    // Optimal: Send all tokens back to their owners.
-                    // For now: Send funds back to owner, user can retrive their tokens with retrive_voting_tokens()
+                    Account::from(self.fund_owner_adress).deposit(self.cost_vault.take_all());
                    }
                 }
-                //Additional needed Methods
+                //Needs additional Methods
                 //on_failure (auto-send-back. Not needed for prototype)
-                //(update_needed_votes = to fix vulnerability "buy a lot of shares to win vote" */
+                //update_needed_votes: to fix vulnerability "buy a lot of shares to win vote" */
 
             }
 

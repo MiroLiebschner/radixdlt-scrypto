@@ -12,7 +12,7 @@ Missing functionality (for now):
 /*
 A SharedCompany is a company owned and governed by its shareholders.
 Shares can be bought (fixed rate for now).
-Funds can be spend using [Proposal] if accepted by a majority of sharews.
+Funds can be spend using [Proposal] if accepted by a majority (of company_voting_tokens which are distributed with shares).
 This is only a demonstration. There are known security flaws in this design.
 (like: Buy a lot of shares, make proposal to send you all company_radix, vote for it)
 */
@@ -44,7 +44,6 @@ impl SharedCompany {
         .new_token_fixed(1_000_000);
 
 
-
     //populate the SharedCompany struct and instantiate a new component
     Self {
         company_shares: Vault::with_bucket(shared_company_share_resource_def),
@@ -74,15 +73,18 @@ impl SharedCompany {
     }
 
      /// sells an amount of shares and for a part of the companies xrd
-     pub fn sell_shares(&mut self, shares: Bucket, voting_token: Bucket) -> Bucket {
+     pub fn sell_shares(&mut self, shares: Bucket, voting_token: Bucket) -> (Bucket, Bucket) {
+        if shares.amount() != voting_token.amount()  {return (shares, voting_token)};
         // calculates the percentage of all shares
         let percentage_of_all_shares = shares.amount() / self.share_counter;
         // Decreases the counter
         self.share_counter -= shares.amount();
-        //ToDoBurns the shares
-        //ToDO Burn the voting_token
+        //ToDoBurns the shares instead
+        self.company_shares.put(shares);
+        //ToDO Burn the voting_token instead
+        self.company_voting_token.put(voting_token);
         // returns the same percentage of the company xrd
-        self.company_radix.take(self.company_radix.amount() * percentage_of_all_shares)
+        (self.company_radix.take(self.company_radix.amount() * percentage_of_all_shares), Bucket::new(RADIX_TOKEN))
     }
 
     // A proposal that if it is accepted sends funds away from the company
@@ -91,9 +93,5 @@ impl SharedCompany {
         let cost = self.company_radix.take(cost_as_number);
         Proposal::new(cost, destination_adress, reason, admin_adress, end_epoch, self.share_counter / 2 + 1, self.company_voting_token.resource_def());
     }
-
-
-
-
-
-}}
+}
+}
