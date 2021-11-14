@@ -1,12 +1,11 @@
 use scrypto::prelude::*;
-// A proposal that unlocks funds (XRD).
-//This fund can then be used to pay for services and products of other firms
+// A proposal that unlocks funds.
 blueprint! {
 struct Proposal{
             // Fund which are looked for the vote
             cost_vault: Vault,
             // If proposal is accepted: Funds are send to this adress
-            destination_adress_funds: String,
+            destination_adress_funds: Address,
             // What are users voting on?
             reason: String,
             // The token that is needed to vote.
@@ -23,13 +22,13 @@ struct Proposal{
             // When this epoch is reached and try_solve() is called,
             //no more voting will be possible and cost_vault will be send to owners address (not implemented yet)
             end_epoch: u64,
-            fund_owner_adress: String,
+            fund_owner_adress: Address,
     }
 
             impl Proposal{
 
                 /// creates a new instance of a proposal
-                pub fn new(cost: Bucket, destination_adress_funds: String, reason: String, admin_adress: String, end_epoch: u64,
+                pub fn new(cost: Bucket, destination_adress_funds: Address, reason: String, admin_adress: Address, end_epoch: u64,
                     needed_votes: Decimal, company_voting_token_resource_def: ResourceDef)-> Component {
 
                     // The token that the user gets in exchange for their "yes" voting.
@@ -90,13 +89,8 @@ struct Proposal{
                 /// Checks if a finish condition is reached
                pub fn try_solve(&mut self){
                    if self.yes_counter > self.needed_votes {
-                    // ToDo send tokens to destination_adress.
-                    //Problem: Account::from Str not working, cant find the correct type
-                    /*  let acc = Account::from(self.destination_adress_funds);
-                    acc.deposit(self.cost_vault.take_all()) */
-                    let string = "testset";
-                    let my_addr: Address::from_str(&string);
-                    let acc = Account::from(my_addr);
+                    let acc = Account::from(self.destination_adress_funds);
+                    acc.deposit(self.cost_vault.take_all());
                    }
                    if self.no_counter > self.needed_votes {
                     //ToDo send tokens to initial address

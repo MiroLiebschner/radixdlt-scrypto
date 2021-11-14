@@ -10,11 +10,11 @@ Missing functionality (for now):
 */
 
 /*
-A shared company is a company owned by its shareholders.
+A SharedCompany is a company owned and governed by its shareholders.
 Shares can be bought (fixed rate for now).
-Funds can be spend using [Proposal] if accepted by a majority of shareweight.
-This is only a demonstration. There are known security flaws in this design
-(like: Buy a lot of shares, make proposal to send you all compnay_radix, vote for it)
+Funds can be spend using [Proposal] if accepted by a majority of sharews.
+This is only a demonstration. There are known security flaws in this design.
+(like: Buy a lot of shares, make proposal to send you all company_radix, vote for it)
 */
 blueprint! {
 
@@ -81,16 +81,14 @@ impl SharedCompany {
         self.share_counter -= shares.amount();
         //ToDoBurns the shares
         //ToDO Burn the voting_token
-
         // returns the same percentage of the company xrd
         self.company_radix.take(self.company_radix.amount() * percentage_of_all_shares)
     }
 
     // A proposal that if it is accepted sends funds away from the company
-    pub fn make_proposal(&self,cost_as_number: u32, destination_adress: String,reason: String,
-        admin_adress: String, end_epoch: u64,){
-        //ToDo change this to smt variable, but fails method call for some reason
-            let cost = self.company_radix.take(cost_as_number);
+    pub fn make_proposal(&self,cost_as_number: u32, destination_adress: Address,reason: String,
+        admin_adress: Address, end_epoch: u64,){
+        let cost = self.company_radix.take(cost_as_number);
         Proposal::new(cost, destination_adress, reason, admin_adress, end_epoch, self.share_counter / 2 + 1, self.company_voting_token.resource_def());
     }
 
