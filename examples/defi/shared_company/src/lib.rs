@@ -56,8 +56,8 @@ impl SharedCompany {
 
     }
     // Returns the price per share
-    pub fn get_price(&self) -> Decimal {
-        self.price_share
+    pub fn get_price(&self)  {
+        info!( "Price is {}",  self.price_share);
     }
 
     /// buys an amount of shares and returns change
@@ -83,15 +83,17 @@ impl SharedCompany {
         self.company_shares.put(shares);
         //ToDO Burn the voting_token instead
         self.company_voting_token.put(voting_token);
+        info!( "You are paid out {:?} Radix!", self.company_radix.amount());
         // returns the same percentage of the company xrd
         (self.company_radix.take(self.company_radix.amount() * percentage_of_all_shares), Bucket::new(RADIX_TOKEN))
     }
 
     // A proposal that if it is accepted sends funds away from the company
-    pub fn make_proposal(&self,cost_as_number: u32, destination_adress: Address,reason: String,
-        admin_adress: Address, end_epoch: u64,){
+    pub fn make_proposal(&self,cost_as_number: u32, destination_adress: Address,
+        reason: String,end_epoch: u64,){
         let cost = self.company_radix.take(cost_as_number);
-        Proposal::new(cost, destination_adress, reason, admin_adress, end_epoch, self.share_counter / 2 + 1, self.company_voting_token.resource_def());
+        Proposal::new(cost, destination_adress, reason, self.company_radix.resource_address(), end_epoch, self.share_counter / 2 + 1, self.company_voting_token.resource_def());
+        info!("Proposal created! Destination adress if accepted: {}", destination_adress);
     }
 }
 }

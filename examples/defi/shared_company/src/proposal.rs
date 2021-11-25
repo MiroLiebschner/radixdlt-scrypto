@@ -15,8 +15,6 @@ struct Proposal{
             replacement_tokens_type_no: Vault,
             yes_counter: Decimal,
             no_counter: Decimal,
-            // the admin can stop the proposal
-            proposal_admin: Vault,
             // The votes needed for the vote to succeed
             needed_votes: Decimal,
             // When this epoch is reached and try_solve() is called,
@@ -41,8 +39,6 @@ struct Proposal{
                      .metadata("name", "Replacement token no").metadata("symbol", "RTN")
                   .new_token_fixed(1_000_000);
 
-                    // This badge can be theoretically be used for burns
-                    let proposal_admin_badge = ResourceBuilder::new().new_badge_fixed(1);
                     // the vault that holds the costs that are associated with the proposal
                     let cost_vault = Vault::new(cost.resource_def());
                     // fills the cost vault
@@ -56,7 +52,6 @@ struct Proposal{
                     replacement_tokens_type_no: Vault::with_bucket(replacement_token_no_resource_def),
                     yes_counter: Decimal(0.0 as i128),
                     no_counter: Decimal(0.0 as i128),
-                    proposal_admin: Vault::with_bucket(proposal_admin_badge),
                     needed_votes: needed_votes,
                     fund_owner_adress: admin_adress,
                     end_epoch: end_epoch,
@@ -91,18 +86,30 @@ struct Proposal{
                pub fn try_solve(&mut self){
                    if self.yes_counter > self.needed_votes {
                     Account::from(self.destination_adress_funds).deposit(self.cost_vault.take_all());
+                    info!("Proposal resolved: Positive");
                    }
                    if self.no_counter > self.needed_votes {
                     Account::from(self.fund_owner_adress).deposit(self.cost_vault.take_all());
+                    info!("Proposal resolved: Negative");
                    }
                    if Context::current_epoch() > self.end_epoch {
                     Account::from(self.fund_owner_adress).deposit(self.cost_vault.take_all());
+                    info!("Proposal resolved: Negative");
                    }
+                   info!("No end condition reached");
+                /*Needs additional Methods (not in the scope of this demo): on_failure (auto-send-back),
+                update_needed_votes (to fix vulnerability "buy a lot of shares to win vote"), and more */
                 }
-                //Needs additional Methods
-                //on_failure (auto-send-back. Not needed for prototype)
-                //update_needed_votes: to fix vulnerability "buy a lot of shares to win vote" */
 
+              // prints info about the proposal
+              pub fn info(&self){
+                   info!("Needed votes: {}", self.needed_votes);
+                   info!("Yes votes: {}", self.yes_counter);
+                   info!("No votes: {}", self.no_counter);
+                   info!("Proposal end epoch: {}", self.end_epoch);
+                   info!("Proposal destination addres {}", self.destination_adress_funds);
+              }
             }
+
 
         }
