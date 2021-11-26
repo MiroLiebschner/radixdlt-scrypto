@@ -3,18 +3,11 @@ mod proposal;
 use crate::proposal::Proposal;
 
 /*
-Missing functionality (for now):
-- Burn --> How to? Seems like badges are needed but clear example is missing. Waiting for video explaination
-- Send_to_adress --> Approach by Rock should work but unclear how to pass the adress to Account::FromStr
-- many more, especially regarding security, testing, updates etc.
-*/
-
-/*
-A SharedCompany is a company owned and governed by its shareholders.
+A SharedCompany which is a company owned and governed by its shareholders.
 Shares can be bought (fixed rate for now).
 Funds can be spend using [Proposal] if accepted by a majority (of company_voting_tokens which are distributed with shares).
 This is only a demonstration. There are known security flaws in this design.
-(like: Buy a lot of shares, make proposal to send you all company_radix, vote for it)
+(like: Buy a lot of shares, make proposal to send you all company_radix, vote for it).
 */
 blueprint! {
 
@@ -24,24 +17,27 @@ struct SharedCompany {
     company_voting_token: Vault,
     share_counter: Decimal,
     price_share: Decimal,
-    share_burn_badge: Vault,
+    proposal_list: Vec<Address>,
 }
 
+
 impl SharedCompany {
+    // Creates a new component
     pub fn new(price_share: Decimal) -> Component{
 
-        //Create a badge that will be locked in a vault and can later be user to burn shares
-        let share_burn_badge = ResourceBuilder::new().new_badge_fixed(1);
 
-        // create a new company_share resource,
+        // shares are equity in the company. They can be bought for a fixed rate or returned for a part of the company vault
         let shared_company_share_resource_def = ResourceBuilder::new()
         .metadata("name", "SharedCompany share").metadata("symbol", "SC")
         .new_token_fixed(1_000_000);
 
-        // create a new company_share resource,
+        // voting tokens are used to vote on proposals
         let shared_company_voting_token_resource_def = ResourceBuilder::new()
         .metadata("name", "SharedCompany voting token").metadata("symbol", "SCVT")
         .new_token_fixed(1_000_000);
+
+        // stores the addresses of proposal-components
+        let proposal_address_list: Vec<Address>= Vec::new();
 
 
     //populate the SharedCompany struct and instantiate a new component
@@ -51,13 +47,9 @@ impl SharedCompany {
         company_radix: Vault::new(RADIX_TOKEN),
         share_counter: Decimal(0.0 as i128),
         price_share: price_share,
-        share_burn_badge: Vault::with_bucket(share_burn_badge),
+        proposal_list: proposal_address_list
     }.instantiate()
 
-    }
-    // Returns the price per share
-    pub fn get_price(&self)  {
-        info!( "Price is {}",  self.price_share);
     }
 
     /// buys an amount of shares and returns change
@@ -89,11 +81,30 @@ impl SharedCompany {
     }
 
     // A proposal that if it is accepted sends funds away from the company
-    pub fn make_proposal(&self,cost_as_number: u32, destination_adress: Address,
-        reason: String,end_epoch: u64,){
-        let cost = self.company_radix.take(cost_as_number);
-        Proposal::new(cost, destination_adress, reason, self.company_radix.resource_address(), end_epoch, self.share_counter / 2 + 1, self.company_voting_token.resource_def());
+    pub fn make_proposal( &mut self,cost_as_number: u32, destination_adress: Address,reason: String,end_epoch: u64,){
+        // Creates the proposal component
+        let new_proposal = Proposal::new(self.company_radix.take(cost_as_number), destination_adress, reason, self.company_radix.resource_address(), end_epoch, self.share_counter / 2 + 1, self.company_voting_token.resource_def());
+        //Here i want to pass the address of the new comonent
+        self.proposal_list.push(new_proposal.address());
         info!("Proposal created! Destination adress if accepted: {}", destination_adress);
+    }
+
+    // Helper Methods which infor the user about interactions with the company.
+
+    // Returns the price per share
+     pub fn get_price(&self)  {
+        info!( "Price is {}",  self.price_share);
+    }
+
+    // Returns the selling price per share
+    pub fn get_seeling_price(&self) {
+        info!("Selling price per share is {:?}", self.company_radix.amount() / self.share_counter)
+    }
+
+
+    // Returns all the open proposals
+    pub fn get_proposal_list(&self){
+        info!("{:?}", self.proposal_list);
     }
 }
 }

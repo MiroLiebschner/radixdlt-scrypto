@@ -18,7 +18,7 @@ struct Proposal{
             // The votes needed for the vote to succeed
             needed_votes: Decimal,
             // When this epoch is reached and try_solve() is called,
-            //no more voting will be possible and cost_vault will be send to owners address (not implemented yet)
+            //no more voting will be possible and cost_vault will be send to owners address
             end_epoch: u64,
             fund_owner_adress: Address,
     }
@@ -58,6 +58,8 @@ struct Proposal{
                 }.instantiate()
                 }
 
+                // As voting tokens are limited, users might want to retrive their voting tokens at any point to vote for a different propsal
+                // for now they also have to retrive them manually after the proposale is accepted / declined
                 pub fn retrive_voting_tokens(&mut self, replacement_tokens: Bucket) -> Bucket {
                     let amount = replacement_tokens.amount();
                     if self.replacement_tokens_type_yes.resource_def() == replacement_tokens.resource_def() {
@@ -82,7 +84,7 @@ struct Proposal{
                     replacement_tokens
 
                 }
-                /// Checks if a finish condition is reached
+                /// Checks if a finish condition is reached. Sends funds if such a condition is reached
                pub fn try_solve(&mut self){
                    if self.yes_counter > self.needed_votes {
                     Account::from(self.destination_adress_funds).deposit(self.cost_vault.take_all());
@@ -97,7 +99,7 @@ struct Proposal{
                     info!("Proposal resolved: Negative");
                    }
                    info!("No end condition reached");
-                /*Needs additional Methods (not in the scope of this demo): on_failure (auto-send-back),
+                /*Needs additional Methods (not in the scope of this demo): auto-send-back of voting tokens,
                 update_needed_votes (to fix vulnerability "buy a lot of shares to win vote"), and more */
                 }
 
